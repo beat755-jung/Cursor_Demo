@@ -2,6 +2,13 @@
   "version": 1,
   "hooks": {
     "afterFileEdit": [{ "command": "node .cursor/hooks/audit.mjs" }],
-    "beforeShellExecution": [{ "command": "node .cursor/hooks/audit.mjs" }]
+    "beforeShellExecution": [
+      { "command": "node .cursor/hooks/audit.mjs" },
+      {
+        "command": "node .cursor/hooks/block-rm.mjs",
+        "matcher": "rm\\s+-rf",
+        "failClosed": true
+      }
+    ]
   }
 }
