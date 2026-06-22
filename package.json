@@ -4,7 +4,8 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "node --test src/email.test.js"
+    "start": "node src/server.js",
+    "test": "node --import ./test-setup.js --test src/**/*.test.js"
   },
   "keywords": [],
   "author": "",
