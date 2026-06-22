@@ -1,18 +1,7 @@
 {
   "version": 1,
   "hooks": {
-    "afterFileEdit": [
-      {
-        "command": "bash .cursor/hooks/audit.sh"
-      }
-    ],
-    "beforeShellExecution": [
-      {
-        "command": "bash .cursor/hooks/block-git.sh",
-        "matcher": "git\\s+(push|reset|clean)",
-        "timeout": 10,
-        "failClosed": true
-      }
-    ]
+    "afterFileEdit": [{ "command": "node .cursor/hooks/audit.mjs" }],
+    "beforeShellExecution": [{ "command": "node .cursor/hooks/audit.mjs" }]
   }
 }

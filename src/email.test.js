@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   extractEmails,
   isValidEmail,
+  isValidEmailPractical,
+  isValidEmailRfc5322,
   getValidEmails,
   uniqueValidEmails,
 } from './email.js';
@@ -21,7 +23,7 @@ test('extractEmails returns all emails from users', () => {
   ]);
 });
 
-test('isValidEmail validates email format', () => {
+test('isValidEmail validates email format (HTML Living Standard)', () => {
   assert.equal(isValidEmail('alice@example.com'), true);
   assert.equal(isValidEmail('user+tag@example.com'), true);
   assert.equal(isValidEmail('  alice@example.com  '), true);
@@ -29,6 +31,16 @@ test('isValidEmail validates email format', () => {
   assert.equal(isValidEmail(''), false);
   assert.equal(isValidEmail('   '), false);
   assert.equal(isValidEmail(null), false);
+});
+
+test('isValidEmailPractical rejects missing TLD', () => {
+  assert.equal(isValidEmailPractical('bob@gmail'), false);
+  assert.equal(isValidEmailPractical('alice@example.com'), true);
+});
+
+test('isValidEmailRfc5322 accepts bracket IP literal', () => {
+  assert.equal(isValidEmailRfc5322('user@[192.168.0.1]'), true);
+  assert.equal(isValidEmailRfc5322('invalid'), false);
 });
 
 test('isValidEmail enforces RFC 3696 length limits', () => {

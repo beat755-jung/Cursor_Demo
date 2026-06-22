@@ -1,25 +1,56 @@
 /**
- * RFC 5322 이메일 패턴 (emailregex.com, IP 옥텟 버그 수정).
- * @see https://stackoverflow.com/questions/201323/what-is-the-best-regular-expression-for-validating-email-addresses
+ * 이메일 검증 정규식 모음.
+ *
+ * 웹 권장안 요약:
+ * - 기본 검증: HTML Living Standard (MDN) — 브라우저 `type="email"`과 동등
+ * - 빠른 형식 검사: Practical 패턴 (TrueList)
+ * - RFC 5322 전체 정규식: UI Bakery — 기본값으로 쓰지 말 것(과도하게 관대·복잡)
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/email#basic_validation
+ * @see https://truelist.io/blog/javascript-validate-email
+ * @see https://uibakery.io/regex-library/email
  */
-const RFC5322_EMAIL_REGEX = new RegExp(
-  '^(?:' +
-    "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*" +
-    '|"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*"' +
-    ')@' +
-    '(?:' +
-    '(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?' +
-    '|\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])' +
-    '|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\]' +
-    ')$',
-  'i',
-);
 
 /** RFC 5321 SMTP 최대 주소 길이 */
-const MAX_EMAIL_LENGTH = 254;
+export const MAX_EMAIL_LENGTH = 254;
 
 /** RFC 5321 로컬 파트(@ 앞) 최대 길이 */
-const MAX_LOCAL_PART_LENGTH = 64;
+export const MAX_LOCAL_PART_LENGTH = 64;
+
+/**
+ * HTML Living Standard 이메일 패턴 (MDN 권장, 브라우저 `type="email"`과 동등).
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/email#basic_validation
+ */
+export const HTML_EMAIL_REGEX =
+  /^[\w.!#$%&'*+/=?^`{|}~-]+@[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?(?:\.[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?)*$/i;
+
+/**
+ * Practical 이메일 패턴 — 흔한 오타만 빠르게 걸러낼 때 사용.
+ * @see https://truelist.io/blog/javascript-validate-email
+ */
+export const PRACTICAL_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * RFC 5322 준수 패턴 (UI Bakery). 기본 검증에는 권장하지 않음.
+ * @see https://uibakery.io/regex-library/email
+ */
+export const RFC5322_EMAIL_REGEX =
+  /^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/i;
+
+/**
+ * 이메일 길이 제한(RFC 5321)을 검사한다.
+ *
+ * @param {string} email - 트림된 이메일
+ * @returns {boolean} 길이가 유효하면 true
+ */
+function passesLengthLimits(email) {
+  const atIndex = email.lastIndexOf('@');
+  return (
+    atIndex > 0 &&
+    atIndex <= MAX_LOCAL_PART_LENGTH &&
+    email.length <= MAX_EMAIL_LENGTH
+  );
+}
 
 /**
  * 사용자 배열에서 이메일 필드만 추출한다.
@@ -35,11 +66,9 @@ const MAX_LOCAL_PART_LENGTH = 64;
  * // => ['a@b.com', 'bad']
  */
 export function extractEmails(users) {
-  // 배열이 아니면( null, undefined 등 ) 추출할 수 없으므로 빈 배열 반환
   if (!Array.isArray(users)) {
     return [];
   }
-  // 각 사용자 객체에서 email 필드만 꺼내 새 배열로 반환
   return users.map((user) => user.email);
 }
 
@@ -47,7 +76,7 @@ export function extractEmails(users) {
  * 단일 이메일 문자열의 형식과 길이 제한을 검증한다.
  *
  * **성격:** 판별(predicate) 함수. true/false만 반환하며 데이터를 변경하지 않는다.
- * RFC 5322 정규식과 RFC 3696 길이 제한(로컬 64자, 전체 254자)을 함께 적용한다.
+ * MDN HTML Living Standard 정규식과 RFC 5321 길이 제한을 함께 적용한다.
  * 앞뒤 공백은 자동으로 제거한 뒤 검사한다.
  *
  * @param {unknown} email - 검증할 이메일
@@ -62,15 +91,30 @@ export function isValidEmail(email) {
   }
 
   const trimmed = email.trim();
-  if (trimmed.length === 0) {
+  if (trimmed.length === 0 || !passesLengthLimits(trimmed)) {
     return false;
   }
 
-  const atIndex = trimmed.lastIndexOf('@');
-  if (atIndex <= 0 || atIndex > MAX_LOCAL_PART_LENGTH) {
+  return HTML_EMAIL_REGEX.test(trimmed);
+}
+
+/**
+ * RFC 5322 전체 정규식으로 이메일을 검증한다. (선택적·엄격 모드)
+ *
+ * UI Bakery 등에서 RFC 5322 준수 패턴은 기본 검증에 쓰지 말라고 권장한다.
+ * IP 리터럴·따옴표 로컬 파트 등 특수 케이스가 필요할 때만 사용한다.
+ *
+ * @param {unknown} email - 검증할 이메일
+ * @returns {boolean} 유효하면 true
+ * @see https://uibakery.io/regex-library/email
+ */
+export function isValidEmailRfc5322(email) {
+  if (typeof email !== 'string') {
     return false;
   }
-  if (trimmed.length > MAX_EMAIL_LENGTH) {
+
+  const trimmed = email.trim();
+  if (trimmed.length === 0 || !passesLengthLimits(trimmed)) {
     return false;
   }
 
@@ -78,20 +122,30 @@ export function isValidEmail(email) {
 }
 
 /**
- * 사용자 배열에서 형식이 유효한 이메일만 필터링한다.
+ * Practical 정규식으로 이메일 형식을 빠르게 검증한다.
  *
- * **성격:** 추출 + 검증을 연결하는 파이프라인 함수.
- * `extractEmails` → `isValidEmail` 순으로 호출해 유효한 값만 남긴다.
- * 중복은 제거하지 않으며, 등장 순서를 유지한다.
+ * @param {unknown} email - 검증할 이메일
+ * @returns {boolean} 유효하면 true
+ * @see https://truelist.io/blog/javascript-validate-email
+ */
+export function isValidEmailPractical(email) {
+  if (typeof email !== 'string') {
+    return false;
+  }
+
+  const trimmed = email.trim();
+  if (trimmed.length === 0 || trimmed.length > MAX_EMAIL_LENGTH) {
+    return false;
+  }
+
+  return PRACTICAL_EMAIL_REGEX.test(trimmed);
+}
+
+/**
+ * 사용자 배열에서 형식이 유효한 이메일만 필터링한다.
  *
  * @param {unknown} users - `{ email?: string }` 형태 객체의 배열
  * @returns {string[]} 유효한 이메일 배열
- * @example
- * getValidEmails([
- *   { email: 'alice@example.com' },
- *   { email: 'bad' },
- * ]);
- * // => ['alice@example.com']
  */
 export function getValidEmails(users) {
   return extractEmails(users).filter(isValidEmail);
@@ -100,18 +154,8 @@ export function getValidEmails(users) {
 /**
  * 유효한 이메일을 추출하고 대소문자 무시 기준으로 중복을 제거한다.
  *
- * **성격:** 집계(aggregate) 함수. `getValidEmails` 결과에 Set 기반 중복 제거를 적용한다.
- * `alice@example.com`과 `Alice@Example.com`은 동일한 주소로 취급하며,
- * 먼저 등장한 원본 문자열을 유지한다.
- *
  * @param {unknown} users - `{ email?: string }` 형태 객체의 배열
  * @returns {string[]} 중복이 제거된 유효 이메일 배열
- * @example
- * uniqueValidEmails([
- *   { email: 'alice@example.com' },
- *   { email: 'Alice@Example.com' },
- * ]);
- * // => ['alice@example.com']
  */
 export function uniqueValidEmails(users) {
   const seen = new Set();
