@@ -1,13 +1,12 @@
-import { extractEmails, getValidEmails } from './email.js';
+import { extractEmails, getValidEmails, uniqueValidEmails } from './email.js';
 
 const users = [
-  { name: 'John', email: 'john@example.com' },
-  { name: 'Jane', email: 'jane@example.com' },
-  { name: 'Jim', email: 'jim@example.com' },
+  { name: 'Alice', email: 'alice@example.com' },
+  { name: 'Bob', email: 'invalid-email' },
+  { name: 'Carol', email: 'carol@test.org' },
+  { name: 'Dave', email: 'alice@example.com' },
 ];
 
-const emails = extractEmails(users);
-console.log(emails);
-
-const validEmails = getValidEmails(users);
-console.log(validEmails);
+console.log('전체 이메일:', extractEmails(users));
+console.log('유효 이메일:', getValidEmails(users));
+console.log('유효·중복 제거:', uniqueValidEmails(users));

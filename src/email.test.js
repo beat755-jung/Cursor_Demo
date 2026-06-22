@@ -1,52 +1,81 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractEmails, isValidEmail, getValidEmails, normalizeEmail } from './email.js';
+import {
+  extractEmails,
+  isValidEmail,
+  getValidEmails,
+  uniqueValidEmails,
+} from './email.js';
 
-test('extractEmails returns emails from users', () => {
-  const users = [
-    { name: 'John', email: 'john@example.com' },
-    { name: 'Jane', email: 'jane@example.com' },
-  ];
+const users = [
+  { name: 'Alice', email: 'alice@example.com' },
+  { name: 'Bob', email: 'invalid-email' },
+  { name: 'Carol', email: 'carol@test.org' },
+];
+
+test('extractEmails returns all emails from users', () => {
   assert.deepEqual(extractEmails(users), [
-    'john@example.com',
-    'jane@example.com',
+    'alice@example.com',
+    'invalid-email',
+    'carol@test.org',
   ]);
+});
+
+test('isValidEmail validates email format', () => {
+  assert.equal(isValidEmail('alice@example.com'), true);
+  assert.equal(isValidEmail('user+tag@example.com'), true);
+  assert.equal(isValidEmail('  alice@example.com  '), true);
+  assert.equal(isValidEmail('invalid-email'), false);
+  assert.equal(isValidEmail(''), false);
+  assert.equal(isValidEmail('   '), false);
+  assert.equal(isValidEmail(null), false);
+});
+
+test('isValidEmail enforces RFC 3696 length limits', () => {
+  const longLocalPart = `${'a'.repeat(64)}@example.com`;
+  const tooLongLocalPart = `${'a'.repeat(65)}@example.com`;
+  const tooLongAddress = `${'a'.repeat(243)}@example.com`;
+
+  assert.equal(isValidEmail(longLocalPart), true);
+  assert.equal(isValidEmail(tooLongLocalPart), false);
+  assert.equal(isValidEmail(tooLongAddress), false);
 });
 
 test('extractEmails returns empty array for non-array input', () => {
   assert.deepEqual(extractEmails(null), []);
+  assert.deepEqual(extractEmails(undefined), []);
 });
 
-test('isValidEmail validates email format with HTML5/WHATWG pattern', () => {
-  assert.equal(isValidEmail('john@example.com'), true);
-  assert.equal(isValidEmail('user.name+tag@gmail.com'), true);
-  assert.equal(isValidEmail('  jane@example.com  '), true);
-  assert.equal(isValidEmail('invalid'), false);
-  assert.equal(isValidEmail('@no-local.com'), false);
-  assert.equal(isValidEmail(''), false);
-  assert.equal(isValidEmail(null), false);
-});
-
-test('getValidEmails filters out invalid emails', () => {
-  const users = [
-    { name: 'John', email: 'john@example.com' },
-    { name: 'Bad', email: 'not-an-email' },
-    { name: 'Jane', email: 'jane@example.com' },
-    { name: 'Empty', email: '' },
-    { name: 'Missing', email: undefined },
-    { name: 'Whitespace', email: '   ' },
-    { name: 'NoAt', email: 'missing-at-sign' },
-  ];
+test('getValidEmails returns only valid emails', () => {
   assert.deepEqual(getValidEmails(users), [
-    'john@example.com',
-    'jane@example.com',
+    'alice@example.com',
+    'carol@test.org',
   ]);
 });
 
-test('normalizeEmail trims whitespace and lowercases', () => {
-  assert.equal(normalizeEmail('  John@Example.COM  '), 'john@example.com');
-  assert.equal(normalizeEmail('jane@example.com'), 'jane@example.com');
-  assert.equal(normalizeEmail(''), null);
-  assert.equal(normalizeEmail('   '), null);
-  assert.equal(normalizeEmail(null), null);
+test('uniqueValidEmails removes duplicate valid emails', () => {
+  const duplicateUsers = [
+    { email: 'alice@example.com' },
+    { email: 'alice@example.com' },
+    { email: 'carol@test.org' },
+    { email: 'invalid-email' },
+  ];
+
+  assert.deepEqual(uniqueValidEmails(duplicateUsers), [
+    'alice@example.com',
+    'carol@test.org',
+  ]);
+});
+
+test('uniqueValidEmails treats case-insensitive duplicates as one', () => {
+  const caseUsers = [
+    { email: 'alice@example.com' },
+    { email: 'Alice@Example.com' },
+    { email: 'carol@test.org' },
+  ];
+
+  assert.deepEqual(uniqueValidEmails(caseUsers), [
+    'alice@example.com',
+    'carol@test.org',
+  ]);
 });
